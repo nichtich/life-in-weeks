@@ -1,0 +1,123 @@
+%
+% This LaTeX file creates a calendar of all weeks in a person's lifetime,
+% similar to the life calendar created by Tim Urban in his blog:
+% <http://waitbutwhy.com/2014/05/life-weeks.html>
+%
+% This calendar correctly handles leap years, weekdays and calendar years.
+% 
+% Each week takes 5mm x 5mm (shown as rectangle of 4mm x 4mm), so at most 
+% 82 years fit onto a A3 page of paper.
+%
+% To create a PDF, manage to install required LaTeX packages and run:
+%
+% $ pdflatex calendar.tex
+%
+\documentclass[a3paper,12pt]{article}
+\usepackage{tikz}
+\usepackage{calc}
+
+\usepackage{datenumber}
+\newcounter{birthday}
+\newcounter{firstday}
+\newcounter{firstweek}
+\newcounter{daysleft}
+\newcounter{weeksleft}
+
+% expected life span in years
+\newcommand{\firstyear}{0}
+\newcommand{\lastyear}{81}
+
+% birthday
+\setmydatenumber{birthday}{1990}{1}{1}% Monday
+
+% page and font layout
+\usepackage[left=0mm,top=3mm,bottom=0mm,right=0mm,nohead,nofoot]{geometry}
+\setlength{\parindent}{0pt}
+\renewcommand{\familydefault}{\sfdefault} 
+
+\begin{document}
+\thispagestyle{empty}
+\begin{center}
+\begin{tikzpicture}
+
+\setdatebynumber{\thebirthday}
+\newcounter{birthdaymonth}\setcounter{birthdaymonth}{\thedatemonth}
+\newcounter{birthdayday}\setcounter{birthdayday}{\thedateday}
+
+% years of life
+\foreach \year in {\firstyear,...,\lastyear} {
+
+  % left: year of age
+  \node[anchor=south east] at (0,-5mm*\year) {\year};
+  
+  % days counter at first day of this year of life
+  \setcounter{firstday}{\thedatenumber}
+
+  % first week
+  \ifnum\value{datedayname}>1
+     % partial week
+     \setcounter{firstweek}{\the\numexpr8-\value{datedayname}\relax}
+     \draw (5mm,-5mm*\year)
+        +(-4mm/7*\thefirstweek,0) to +(0,0) to 
+        +(0,4mm) to +(-4mm/7*\thefirstweek,4mm);
+  \else
+     % full week (starting at monday)
+     \setcounter{firstweek}{7}
+     \draw (5mm,-5mm*\year) rectangle +(-4mm,4mm);
+  \fi
+
+  % show month
+  % FIXME: show 1..\thebirthdaymonth and better align marks
+  \foreach \month in {\thebirthdaymonth,...,12}
+    {
+        \setdatenumber{\thedateyear}{\month}{1}
+        \setcounter{daysleft}{\thedatenumber}
+        \addtocounter{daysleft}{-\thefirstday}
+        \addtocounter{daysleft}{7}
+        \addtocounter{daysleft}{-\thefirstweek}
+        \draw[thick] (5mm/7*\thedaysleft+1mm,-5mm*\year+4mm) 
+            to +(0,1mm);
+    }
+
+  % skip to the day before next birthday
+  \addtocounter{dateyear}{1}
+  \setdatenumber{\thedateyear}{\thebirthdaymonth}{\thebirthdayday}
+  \prevdate
+
+  % number of days in this year of life (358...365)
+  \setcounter{daysleft}{\thedatenumber}
+  \addtocounter{daysleft}{-\thefirstday}
+  \addtocounter{daysleft}{-\thefirstweek}
+  \addtocounter{daysleft}{1}
+
+  %\draw[color=blue] (9,-5mm*\year) node {\thefirstweek};
+  %\draw[color=red] (10,-5mm*\year) node {\thedaysleft};
+
+  % full weeks left in this year of life (51...52)
+  \pgfmathparse{int(floor(\thedaysleft/7))}
+  \setcounter{weeksleft}{\pgfmathresult}
+
+  % days left in the last week (0...6)
+  \addtocounter{daysleft}{-7*\theweeksleft}
+  \ifnum\value{daysleft}>0
+     \draw (5mm*\theweeksleft+1mm,-5mm*\year)
+        +(4mm/7*\thedaysleft,0) to +(0,0) to 
+        +(0,4mm) to +(4mm/7*\thedaysleft,4mm);
+  \fi
+
+  % full weeks
+  \foreach \week in {2,...,\theweeksleft}
+    \draw (5mm*\week,-5mm*\year) rectangle +(-4mm,4mm);
+
+  % right: calendar year at the day before next birthday
+  \node[anchor=south west] at (52.5*5mm,-5mm*\year)
+    {\thedateyear};
+
+  % skip to next birthday
+  \nextdate
+  \setdatenumber{\thedateyear}{\thebirthdaymonth}{\thebirthdayday}
+}
+
+\end{tikzpicture}
+\end{center}
+\end{document}
